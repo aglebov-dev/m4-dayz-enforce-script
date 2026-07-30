@@ -2,33 +2,28 @@
 
 [Русская версия / Russian version](README.ru.md)
 
-VS Code that actually understands **DayZ Enforce Script** — your mod, its dependencies and
-the engine scripts, `modded` layers included. Completion, navigation, references, errors
-before the build, and a real engine compile check on `F5`.
+VS Code that understands **DayZ Enforce Script**: your mod, its dependencies and the engine
+scripts together with every `modded` layer. Type-aware completion, navigation, a references
+panel, errors before the build and a verdict from the real engine on `F5`.
 
-> ⚠️ **Beta.** Things may break or change between releases — bug reports are very welcome.
+> ⚠️ **Beta.** Expect bugs and changes between releases — bug reports are very welcome.
 
 ---
 
-> ## ⚠️ Read this before you start using the plugin
+> ## ⚠️ Read this before you start
 >
-> **Unpacking a `.pbo`, decoding a binarized config or recovering obfuscated code — even
-> partially — may violate the terms the mod author set for their work.**
+> **Unpacking `.pbo` files, decoding binarized configs and recovering obfuscated code may
+> violate the restrictions a mod author placed on their work.**
 >
-> **The plugin provides the technical means; the responsibility for unpacking is entirely
-> yours.** By adding a mod to `enforce.project.json` you
-> confirm that you are entitled to use it this way, and you accept full liability for any
-> infringement of the rights holder. The plugin's authors cannot grant you rights,
-> permissions, licences or any other authority to work with someone else's mod, and take no
-> part in your decision to use it in your project.
+> The plugin provides the technical capability — **using it is entirely your responsibility**.
+> By adding someone else's mod to `enforce.project.json` you confirm that you are entitled to
+> do so. The plugin authors grant no rights or licences for it and take no part in your
+> decision.
 >
-> **What this feature is for.** It exists for one purpose: developing **your own** software
-> against someone else's mod as a dependency — you need its public API to compile and
-> navigate, nothing more.
->
-> **How the author's rights are protected.** Obfuscated mods are exposed **as signatures
-> (the public API) only, with no implementation**: class headers, method signatures, field
-> types. Method bodies are not extracted.
+> **Why it exists:** to develop **your own** code when a third-party mod is a dependency — you
+> need its public API and nothing beyond that. That is why obfuscated mods open as
+> **signatures only**: class headers, method signatures, field types. Method bodies are never
+> extracted.
 
 ---
 
@@ -36,211 +31,155 @@ before the build, and a real engine compile check on `F5`.
 
 ## The problem
 
-Out of the box VS Code sees EnScript as plain text. Completion offers every same-named
-symbol in the corpus, "go to definition" lands in the wrong mod, and a typo shows up only
-when the server refuses to start — minutes later, pointing at a file you never touched.
+Out of the box VS Code sees EnScript as text: completion offers every namesake in the corpus,
+"go to definition" lands in someone else's mod, and you learn about a typo five minutes later —
+when the server refuses to start, with an error in a file you never touched.
 
-The plugin indexes the whole picture instead: your code, dependencies, engine scripts and
-every `modded` layer in load order. Everything below follows from that.
+The plugin indexes the whole picture instead: your code, dependencies, engine scripts and every
+`modded` layer in load order. Everything else follows from that.
 
 ## What you get
 
-### Completion that knows the real type
+### Completion by the actual type
 
-Not "every method with this name" — the members of the type actually standing to the left of
-the dot. Call chains, generics, `auto`, `foreach` variables. Each item shows the class it
-comes from and how many mods have already touched it.
+Members of the type that really stands to the left of the dot — call chains, generics, `auto`,
+`foreach` variables. Every item shows its owner class and how many mods already touched it.
+After an enum name you get its values, with numbers, in declaration order.
 
 ![Completion with owners](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/completion-owners.png)
 
-Enum values are offered after the enum name, with their numbers, in declaration order.
+### Navigation that knows about layers
 
-### Navigation that follows the layers
-
-Hover and `F12` resolve by type, not by name. The popup shows a clickable signature, the
-owning class, the mod and module it lives in, all `modded` layers and the overrides in
-derived classes — so you can see at a glance who else has changed this method.
-`super` leads exactly where the engine would go.
+Hover and `F12` resolve by type, not by name. The popup shows a clickable signature, the owner
+class, mod and module, every `modded` layer and the overrides in descendants — you see at once
+who else changed this method. `super` goes exactly where the engine would go.
 
 ![Hover with definitions and overrides](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/hover-definitions.png)
 
 ### Type explorer
 
-The **M4** icon in the activity bar opens a tree of everything the plugin knows about, laid
-out like a project browser: your mod on top (named after `build.modName`, or the folder you
-opened), then **Properties** with the manifest, **Dependencies** with everything that gets
-loaded — the engine and every `load[]` entry — and then your own sources. Everything starts
-collapsed and expands lazily, so an 8000-class corpus opens instantly. Click a file to open
-it, click a symbol to land on its definition.
+The **M4** icon on the left opens a tree of everything the plugin knows: your mod on top, with
+**Properties** (the manifest), **Dependencies** (the engine and every `load[]` entry) and then
+your sources — folder for folder, as on disk. The tree is lazy, so a corpus of 8000 classes
+opens instantly.
 
-**Below an entry the tree is your disk, folder for folder.** Your project is already
-organised — sections, mods, script modules — and that is what you see. A folder holding a
-`config.cpp` is drawn as a mod (your own in blue, a dependency in its own color), everything
-else is a plain folder. Folders come first, then mods, then files, so a mod never gets lost
-between sections.
+A folder with a `config.cpp` is drawn as a mod, the `config.cpp` itself expands into
+`CfgPatches` / `CfgMods`, and `#define`s become nodes with their values (otherwise
+`*_Preload` addons look empty). Read-only items are marked with a lock right away.
+**Only Scripts** in the toolbar trims the tree down to code.
 
-`config.cpp` files are in the tree too, with their `CfgPatches` / `CfgMods` classes nested as
-deep as they go — the config is part of the mod, not a separate world. A mod that ships only
-assets and a config is simply a mod folder without scripts; nothing is hidden away.
+Dependencies are managed from the tree: **+** on `Dependencies` adds a mod folder or a `.pbo`
+to the manifest, **−** removes the entry (nothing on disk is touched, and your comments in the
+manifest survive). Next to the manifest the plugin keeps `enforce.deps.json` — the hash of
+every pbo and its unpack folder, so "is this the same mod?" is a question with an answer.
 
-Preprocessor defines are nodes too. A file that declares nothing but `#define`s — the
-`*_Preload` addons of a big mod are exactly that — used to look empty, and the addon looked
-like a lone `config.cpp`. Now the defines are right there, with their values.
+The explorer is a viewer: the context menu copies paths and reveals files. Create, rename and
+delete appear only if you turn on `enforce.explorerEdit`.
 
-**Only Scripts** in the toolbar cuts the tree down to code: folders with no `.c`/`.cpp`
-anywhere inside disappear, and the single wrapper folder that Workbench conventions put
-inside a script module (`5_Mission → DayZExpansion_Core → …`) is skipped — you get the files
-right away. The five script modules (`1_Core`…`5_Mission`) stay visible even when empty:
-that is where code goes.
+![Explorer next to the class popup](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/explorer-symbols-popup.png)
 
-Icons are colored the way a project browser colors them: amber folders, one color for your
-own code, another for dependencies, and every symbol kind — class, method, field, constant,
-enum, define — in the color your theme already uses for it in Outline and breadcrumbs.
+![Explorer with the mod expanded](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/explorer-tree.png)
 
-![The explorer next to a class popup](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/explorer-symbols-popup.png)
+No `enforce.project.json` yet — the panel offers to create it. Engine scripts not found — an
+**engine — not set** row appears with a button to pick the folder.
 
-No project file yet? The panel says so and offers to create one, the way VS Code offers a
-`launch.json`. The generated `enforce.project.json` already knows your mod name (from the
-folder) and where builds go; if the engine scripts can be found, they are filled in too.
+### References in a proper panel
 
-Engine scripts are usually still packed inside the game (`dta/scripts.pbo`), so when they
-cannot be detected the tree shows an **engine — not set** row with a button: pick any folder
-that has the standard `1_Core / 2_GameLib / 3_Game / 4_World / 5_Mission` layout. What's inside
-is your call — the structure is all that is checked.
-
-Next to your manifest the plugin keeps `enforce.deps.json` — what exactly is connected. A mod
-does not have to come from the Workshop, and a second copy of the same mod easily sits in a
-folder next to it, newer or older with nothing to tell them apart. A path cannot answer "is
-this the file I picked?", so the lock records the **hash of every PBO** plus the unpack folder
-the index actually reads (and the author's `CfgMods` version, when there is one). It updates
-itself whenever the project is reindexed — after you edit the config by hand or use the
-buttons below — and you can see it under **Properties**.
-
-**The explorer is a browser, not a file manager.** Right-click gives you what a browser
-needs: copy path, copy relative path, reveal in the file explorer. Creating, renaming and
-deleting files is what the built-in Explorer is for, and it does it better. While the index
-is being built the panel is disabled: there is nothing to click yet.
-
-Dependencies are managed from the tree: **+** on the `Dependencies` branch picks a mod folder
-or a `.pbo` and writes it into your manifest (the name comes from the folder or file), **−** on
-an entry removes it after asking. Only the manifest entry goes — nothing on disk is touched,
-and the comments you keep in `enforce.project.json` survive the edit.
-
-Script files carry their own green **C** icon, and everything read-only — the engine and every
-dependency — is marked with a lock right away, not only once you open the file. The panel
-opens with your own mod already expanded; dependencies stay collapsed until you ask.
-
-The tree never jumps on its own: it changes only when you click it, or when you use the **☰**
-link in a hover popup.
-
-The toolbar, left to right: substring search across types and members, filters for what to
-show (methods / properties / constants / globals / defines), a refresh that revalidates the
-index first, a jump to the file you are editing (any source connected to the project, yours
-or a dependency), collapse-all, expand-project and **Only Scripts**. Expand covers your own
-mod down to its files — not into them, and never into dependencies: that would mean walking
-thousands of classes for one click. Collapse leaves the project root open, so the panel never
-shrinks to a single line.
-Every definition in a hover popup carries a **☰** link that opens the explorer with that exact
-definition selected — handy when a type has several `modded` layers and you want to see where
-each one lives.
-
-![Type explorer with a mod expanded](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/explorer-tree.png)
-
-### Find all references, in a proper panel
-
-`Shift+F12` opens a bottom panel in Visual Studio style: declarations and layers on top,
-usages below, split into calls, reads, writes, constructors and callbacks. Filter by column,
-sort, collapse groups, pin a result to its own tab. Even ten thousand rows stay responsive.
+`Shift+F12` opens a Visual Studio style panel: declarations and layers on top, usages below,
+split into calls, reads, writes, constructors and callbacks. Filters, sorting, pinning to a
+tab. Ten thousand rows do not lag. Plain text matches are hidden by default — one toolbar
+button brings them back.
 
 ![References panel for a member](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/references-panel-member.png)
 
-Plain text matches are hidden by default — one button in the toolbar brings them back when
-you actually want them. Enum values get their own reference counts, string literals from
-MVC bindings included:
+![References for enum members](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/enum-members.png)
 
-![Enum member references](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/enum-members.png)
+### Defines: what is on, and what will never build
 
-### Defines: see what is on, off, and what will never compile
+Half of a DayZ project lives under `#ifdef`. The plugin collects defines from everywhere they
+come from — `#define` in scripts, `defines[]` in `config.cpp`, mod names — and shows the
+result: dead blocks are dimmed, hover tells you whether a guard is on and where the value came
+from, `F12` goes to the declaration. A guard declared nowhere is an error: that code will never
+build.
 
-Half of a DayZ project lives under `#ifdef`. The plugin collects defines from everywhere
-they can come from — `#define` in scripts, `defines[]` in `config.cpp`, mod names, and
-switches the author left commented out — and shows you the result:
+Types work the same way: if every declaration of a class sits under a guard that is off, its
+usages are dimmed and flagged. That is the engine's `Unknown type`, shown in the editor instead
+of at the end of the build — and it names the guilty guard.
 
-- dead `#ifdef` blocks are dimmed, so you never read code that is not there;
-- hover on a guard tells you whether it is on or off, and where that came from;
-- `F12` jumps to the declaration, `Shift+F12` lists every place the guard is used;
-- a guard nobody declares anywhere is reported — such code can never compile.
+![Undeclared define card](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/define-unknown.png)
 
-![Hover card for an undeclared define, with the references panel below](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/define-unknown.png)
+![Define whose declaration is commented out](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/define-off.png)
 
-![Hover card for a define whose declaration is commented out](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/define-off.png)
+### Errors caught before the build
 
-The same applies to types: if every declaration of a class sits under a switch that is off,
-its usages are dimmed and marked. This is the engine's `Unknown type` — shown in the editor
-instead of at the end of a build, with the guilty switch named.
+On save the file is parsed and checked by the linter and semantics: undeclared methods and
+variables (including out-parameters), unknown types, wrong arity, constructing classes with a
+private constructor, and fifty more rules. Each rule stands on an engine fact proven by a real
+build, so severities are honest: what the engine forgives is a warning, what it rejects is an
+error. Any rule can be overridden through `enforce.rules` by the code shown in Problems.
 
-<!-- TODO screenshot: dead type dimmed in live code + hover -->
-
-### Mistakes caught before the build
-
-On save the file is parsed, linted and checked semantically: undeclared methods and
-functions, unknown types, wrong argument counts, and variables that were never declared —
-including the ones you pass as out-parameters, like `Class.CastTo(ai, …)` where `ai` is a
-typo. Severity is tuned to the engine — what it forgives is a warning, what it rejects is an
-error. A line break that splits an expression is an error too — the engine compiles line by
-line and only lets a line end with `(`, `,` or `=`.
-
-Undeclared names are reported in your own code only: the engine declares part of its constants
-on the C++ side, so judging read-only sources by our data would just cry wolf. For those names
-there is `environments` in the manifest — write them with their values, and they join the
-index like anything else:
+Names the engine declares on the C++ side live in the manifest's `environments` section —
+search, hover and go-to-declaration work for them:
 
 ```jsonc
 "environments": { "DBT_OK": 0, "DBB_NONE": 0, "DMT_INFO": 1 }
 ```
 
-Search, hover and go-to-definition work on them; the definition lands on that very line of
-your manifest.
-
 ![Diagnostics](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/diagnostics.png)
 
-Optionally the same check runs over the whole project right before a build, so a five-minute
-round trip through the server is not spent on a typo. It only ever stops on errors the
-engine would reject, and the dialog always offers **Build anyway**.
+With `build.preflight` the same check runs over the whole project before the build, so a typo
+does not cost you a round trip through the server. It stops only on what the engine will not
+accept, and the dialog always offers **Build anyway**. Findings are tagged `[pre-flight]` and
+stay in Problems until the next run: editing a file clears its own marks, editing the manifest
+does not (changing `defines` flips the verdict everywhere — run it again).
 
-Pre-flight is a **separate pass over the whole project**, not the live analysis: its findings
-are marked `[pre-flight]` and stay in Problems until you run it again. Editing a file clears
-that file's pre-flight marks; editing `enforce.project.json` does not — a change to `defines`
-or `environments` can flip the verdict for every file, so the list is only trustworthy right
-after a run. If you fixed something via the manifest, re-run the build (F5) to refresh it.
-The live analysis in the editor updates on save, independently.
+![Pre-flight stopped the build](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/preflight-dialog.png)
 
-![Pre-flight stopped the build and offered to jump to the first error](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/preflight-dialog.png)
+### Inlay hints
+
+Four kinds of inline hints — each toggled separately, and each silent when there is nothing to
+infer:
+
+```c
+auto: eAIBase ai = eAIBase.Cast(from: g_Game.CreateObject(type: "eAI_SurvivorM_Mirek", pos: "1 1 1"));
+if (!Class.CastTo(out to: data, from: params))
+if (is null: !ai)
+```
+
+| Setting | What it shows |
+| --- | --- |
+| `enforce.inlayHints.autoTypes` | the inferred type of an `auto` declaration |
+| `enforce.inlayHints.parameterNames` | parameter names at call sites |
+| `enforce.inlayHints.parameterModifiers` | `out` / `inout` on arguments |
+| `enforce.inlayHints.truthiness` | what a non-bool condition actually tests |
+
+They are hidden the usual VS Code way: `editor.inlayHints.enabled` (e.g. `offUnlessPressed` to
+show them while `Ctrl+Alt` is held).
 
 ### One key to build and ask the engine
 
-`F5` packs your mod into a PBO (no AddonBuilder, no extra tools) and runs a headless
-DayZ Server compile — the real compiler's verdict in about ten seconds. Root causes are
-separated from the cascade that follows them, and every error is mapped back to your source
-file in the Problems panel. `Ctrl+Shift+B` packs the PBO only.
+`F5` packs the mod into a PBO (no AddonBuilder or other tools) and runs the compile on a
+headless DayZ Server — a verdict from the real compiler in about ten seconds. Root causes are
+separated from the cascade behind them, every error is mapped back to your file in Problems,
+and paths in the log are clickable — including errors inside dependencies. `Ctrl+Shift+B` packs
+the PBO only.
 
-The packer puts **scripts only** into the PBO — enough for the engine to compile your code
-and give its verdict. Full mod packing, assets included, will come later.
+The engine gets its dependencies from the same `load[]` the analyzer indexes: a ready mod is
+passed as is, sources with a `config.cpp` are packed into `<outDir>/deps/@Name`. One source of
+truth — "green in the editor, red in the build" has nowhere to come from.
 
-![Engine build check](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/build-check.png)
+If the engine pops a modal dialog (`Addon 'X' requires addon 'Y'` and friends), the plugin
+closes it and writes the text into **Output**: the build never waits for a human click, and the
+result does not depend on whether someone is watching the screen.
 
-The build log is colorized and every path in it is clickable — including the `config.cpp`
-of a module that was skipped, so you can see why. Pressing `F5` again after a failure just
-works: the plugin waits for the previous server to shut down.
+![Engine check](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/build-check.png)
 
-![Pre-flight errors in the Problems view](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/preflight-problems.png)
+![Pre-flight errors in Problems](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/preflight-problems.png)
 
 ### Small things that add up
 
-- **Inlay hints for `auto`** — the inferred type right in the line, and nothing at all if it
-  cannot be inferred.
-- **Signature help** with the active parameter highlighted as you type the arguments.
-- **Formatter** for the whole file or a selection (or point it at your AStyle binary).
+- **Signature help** with the active parameter highlighted.
+- **Formatter** for a file or a selection (or your own AStyle via `enforce.formatting.astylePath`).
 - **CodeLens and semantic colors** — "N references" / "N layers" above declarations.
 - **Engine and dependency sources open read-only**, so you cannot break them by accident.
 
@@ -252,35 +191,25 @@ works: the plugin waits for the previous server to shut down.
 
 ### 1. Unpacked game scripts
 
-The plugin reads the vanilla scripts as ordinary sources, so you need them unpacked on disk.
-The usual way is **DayZ Tools** → *Extract Game Data*: it mounts the Work Drive as `P:` and
-puts the scripts into `P:\scripts` (the `1_Core` … `5_Mission` folders). Any other local copy
-works too — just tell the plugin in the config where it is.
+The plugin reads vanilla scripts as ordinary sources. The usual way is **DayZ Tools** →
+*Extract Game Data*: it mounts the Work Drive as `P:` and puts the scripts into `P:\scripts`
+(folders `1_Core` … `5_Mission`). Any other local copy works too — just point `engine` at it.
 
-Dependency mods are easier: point `load[]` at the mod's **sources**, an unpacked addon —
-or just the workshop **`@Mod` folder with packed `.pbo` files**. Packed mods are unpacked
-automatically (scripts and configs only, binarized configs are decoded back to text) into
-the plugin cache and re-unpacked when the mod updates.
+Dependencies in `load[]` can be sources, an unpacked addon, or a workshop `@Mod` folder with
+`.pbo` files: packed mods are unpacked into the plugin cache automatically (scripts and configs
+only, binarized configs are decoded back to text) and refreshed when the mod changes on disk.
+The cache is a mirror of the PBO, not a working copy — edits inside it are wiped. To change a
+dependency's code, unpack the PBO yourself and add that folder as sources.
 
-⚠️ **Before you point `load[]` at a mod that is not yours, read the warning at the top of
-this page — the responsibility for unpacking someone else's work is entirely yours.**
+⚠️ About third-party mods — see the warning at the top of this page.
 
-**Obfuscated mods** get an *API-only* view: the plugin extracts declarations —
-class headers, method signatures, field types, enums — and **not the bodies**. You get
-completion, navigation and type checking against such a mod, while its implementation stays
-where the author put it. **This is not guaranteed to work:** for one reason or another the
-API may come out partial — or not at all.
+**Obfuscated mods** open in *API-only* mode: declarations without bodies. No guarantees — the
+API may come out partial, or not at all.
 
 ### 2. `enforce.project.json` in the project root
 
-The file goes next to your mod's `config.cpp`. The minimal one literally works:
-
-```jsonc
-{}
-```
-
-But it is better to start from this — vanilla scripts, mod name, where to build, and where
-DayZ Server lives for debugging:
+Put it next to your mod's `config.cpp`. The minimal working file is `{}`, but this is a better
+start:
 
 ```jsonc
 {
@@ -288,21 +217,18 @@ DayZ Server lives for debugging:
   "build": {
     "modName": "@MyMod",
     "outDir": "./builds",
-    "serverExe": "D:/Steam/steamapps/common/DayZServer/DayZServer_x64.exe",
-    "serverCwd": "D:/Steam/steamapps/common/DayZServer"
+    "serverExe": "D:/Steam/steamapps/common/DayZServer/DayZServer_x64.exe"
   }
 }
 ```
 
-Add dependencies when you need them — the `load[]` key, see the reference below. Manifest
-keys are suggested as you type, and a typo is underlined right away instead of silently
-doing nothing.
+Keys are completed as you type and typos are underlined immediately.
 
-![Key completion inside enforce.project.json](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/manifest-completion.png)
+![Manifest key completion](https://raw.githubusercontent.com/aglebov-dev/m4-dayz-enforce-script/main/images/manifest-completion.png)
 
-### 3. Running it with `F5`
+### 3. Running with `F5`
 
-Create `.vscode/launch.json` in the workspace root:
+`.vscode/launch.json` in the workspace root:
 
 ```jsonc
 {
@@ -313,140 +239,124 @@ Create `.vscode/launch.json` in the workspace root:
 }
 ```
 
-VS Code offers it on its own too: *Run and Debug* → *create a launch.json file* →
-**Enforce Build & Check**. Nothing else is required — `F5` packs the PBO and runs the engine
-check.
+VS Code offers it on its own too: *Run and Debug* → *create a launch.json file* → **Enforce
+Build & Check**.
+
+**Platform.** The analyzer (index, completion, navigation, diagnostics, pre-flight) runs
+anywhere VS Code does — the parser is wasm. The engine build is Windows-only: the gate launches
+`DayZServer_x64.exe`. On macOS/Linux that part reports "server not found" and everything else
+keeps working.
 
 ### No DayZ Server at hand?
 
-Then check your code with our analyzer — turn `preflight` on:
+Turn on pre-flight — `F5` will check the whole project, show the errors and then honestly run
+into the missing server:
 
 ```jsonc
-{
-  "engine": "P:/scripts",
-  "build": { "preflight": true }
-}
+{ "engine": "P:/scripts", "build": { "preflight": true } }
 ```
 
-`F5` will first run the check over the whole project and show the errors, and only then run
-into the missing server and say so honestly. Neither packed dependencies (`build.deps`) nor
-the server path are needed for this — but dependency **sources** in `load[]` are still worth
-listing, otherwise resolution stays incomplete. It is the slower road: the check is not as
-complete as the real compiler's verdict, and some errors will surface later on the server.
-But you can start without the game.
+The check is not as complete as the real compiler's verdict, so some errors surface later. But
+you can start without the game.
 
 ## Commands
 
+All of them live in the palette under the `Enforce:` prefix.
+
 | Command | Description |
 | --- | --- |
-| `Enforce: Find All References (Panel)` | References panel for the symbol under the cursor (`Shift+F12`) |
-| `Enforce: Build Check (Engine Compile)` | PBO + headless engine compile (`F5`) |
-| `Enforce: Rebuild Index` | Force a full reindex |
-| `Enforce: Show All Modifications (discovery)` | All modded layers of a class |
-| `Enforce: Declare Unknown Defines in enforce.project.json` | Write every unknown define into the manifest as `false` |
+| `Find All References (Panel)` | References panel for the symbol under the cursor (`Shift+F12`) |
+| `Build Check (Engine Compile)` | PBO + engine compile (`F5`) |
+| `Rebuild Index` | Full re-index |
+| `Show All Modifications (discovery)` | Every `modded` layer of a class |
+| `Declare Unknown Defines in enforce.project.json` | Add unknown defines to the manifest as `false` |
+| `Create Project File` | Create `enforce.project.json` |
+| `Set Engine Scripts Folder…` | Point the plugin at the engine scripts |
+| `Add Dependency…` / `Remove Dependency` | Edit `load[]` from the tree |
+| `Search Types` / `Filter Symbol Kinds` / `Only Scripts` | Explorer tools (also toolbar buttons) |
+| `Show Current File in Type Explorer` / `Show in Type Explorer` | Reveal a file or a definition in the tree |
+
+File operations (`New Mod…`, `New Script…`, `Rename…`, `Delete` and friends) appear in the
+explorer only when `enforce.explorerEdit` is on.
 
 ## Settings
 
 | Setting | Default | Description |
 | --- | --- | --- |
 | `enforce.workDrive` | `P:` | Work Drive with the unpacked engine scripts |
-| `enforce.parseDiagnostics` | `warning` | Parse diagnostics: warning / error / off |
-| `enforce.semanticDiagnostics` | `warning` | Semantic diagnostics: warning / error / off |
+| `enforce.parseDiagnostics` | `warning` | Parse diagnostics: `warning` / `error` / `off` |
+| `enforce.semanticDiagnostics` | `warning` | Semantics (members, types, arity): `warning` / `error` / `off` |
 | `enforce.unknownDefines` | `warning` | Guards whose define is declared nowhere |
-| `enforce.deadTypeDiagnostics` | `warning` | Types declared only under a switch that is off |
+| `enforce.deadTypeDiagnostics` | `warning` | Types declared only under a guard that is off |
 | `enforce.dimDeadTypes` | `true` | Dim such types in the editor |
-| `enforce.conditionalMembers` | `hide` | Members behind a false guard: hide / dim |
+| `enforce.rules` | `{}` | Severity per rule code: `{"ternary-unsupported": "off"}` |
+| `enforce.conditionalMembers` | `hide` | Members behind a false guard: `hide` / `dim` |
 | `enforce.codeLensReferences` | `true` | "N references" above declarations |
-| `enforce.inlayHints.autoTypes` | `true` | Inferred type shown for `auto` |
-| `enforce.references.includeTextMatches` | `false` | Show text matches in the panel by default |
-| `enforce.preflight` | `false` | Check the project before starting a build |
-| `enforce.readonlyExternal` | `true` | Open engine and dependency sources read-only |
-| `enforce.autoRefreshSeconds` | `300` | Pick up changes outside the workspace (0 = off) |
-| `enforce.formatting` | `{}` | Formatter options (indent, braces, AStyle path) |
-| `enforce.build` | — | Build defaults, overridden by `build{}` in the manifest |
+| `enforce.inlayHints.autoTypes` | `true` | Inferred type for `auto` |
+| `enforce.inlayHints.parameterNames` | `true` | Parameter names at call sites |
+| `enforce.inlayHints.parameterModifiers` | `true` | `out` / `inout` on arguments |
+| `enforce.inlayHints.truthiness` | `true` | What a non-bool condition tests |
+| `enforce.references.includeTextMatches` | `false` | Text matches in the references panel |
+| `enforce.preflight` | `false` | Check the project before launching the engine |
+| `enforce.build` | see below | Build defaults, overridden by `build{}` in the manifest |
+| `enforce.readonlyExternal` | `true` | Engine and dependencies open read-only |
+| `enforce.autoRefreshSeconds` | `300` | Index revalidation interval, seconds (0 = off) |
+| `enforce.formatting` | `{}` | `useSpaces`, `tabSize`, `allmanBraces`, `spaceAfterKeyword`, `astylePath` |
+| `enforce.explorerEdit` | `false` | Allow file operations from the explorer |
 
 ## `enforce.project.json` reference
 
-Everything is optional. A fully filled example:
+Every key is optional.
 
 ```jsonc
 {
-  // ===== WHAT GETS INDEXED ==================================================
-  // This is how the plugin learns which code it reads: completion, navigation,
-  // references and diagnostics all follow from it.
+  // ===== WHAT GETS INDEXED =================================================
+  // Unpacked game scripts (the folder with 1_Core … 5_Mission).
+  // Omit it and <workDrive>/scripts is used. ${WORKDRIVE} works here.
+  "engine": "P:/scripts",
 
-  // Unpacked base game scripts (the folder with 1_Core … 5_Mission).
-  // Omit to use <workDrive>/scripts.
-  "engine": "E:/DayZ/WorkDrive/scripts",
-
-  // Dependency mods, in load order: sources, an unpacked addon, or a PACKED mod —
-  // an @Mod folder with addons/*.pbo (or a single .pbo). Packed mods are unpacked
-  // into the plugin cache automatically; obfuscated ones give an API-only view
-  // (declarations without bodies).
-  // A folder holding several mods (like DayZ-Expansion-Scripts) is split into
-  // layers automatically.
+  // Dependencies in load order: sources, an unpacked addon, or a packed mod
+  // (@Mod with addons/*.pbo, or a single .pbo).
+  // THE SAME LIST is passed to the engine as -mod= during the build.
   "load": [
-    // github.com/Arkensor/DayZ-CommunityFramework
     { "name": "CF",        "path": "D:/mods/DayZ-CommunityFramework/JM/CF" },
-    // github.com/salutesh/DayZ-Expansion-Scripts
     { "name": "Expansion", "path": "D:/mods/DayZ-Expansion-Scripts" },
-    // packed workshop mod — unpacked automatically
     { "name": "COT",       "path": "D:/Steam/steamapps/common/DayZ/!Workshop/@Community-Online-Tools" }
   ],
 
-  // Your own code. Omit it if the sources sit next to the manifest.
+  // Your own code: linted and packed into PBOs. Omit it and the manifest
+  // folder is used.
   "project": [
     { "name": "MyMod", "path": "./src" }
   ],
 
-  // ===== WHAT COUNTS AS ENABLED =============================================
-  // Drives #ifdef: what is dimmed, which members show up in completion, which
-  // types are marked as never-compiling.
+  // ===== WHAT COUNTS AS ENABLED ============================================
+  // Only what sources cannot show: engine defines and those from closed PBOs.
+  // Anything declared in your code or dependencies is picked up automatically.
+  // The engine check prints its real list and offers to import it.
+  "defines": { "PLATFORM_WINDOWS": true, "SERVER": true, "DIAG": false },
 
-  // Defines you cannot see from sources: the ones the engine adds itself, or those
-  // coming from closed PBOs. Everything declared in your code or dependencies is
-  // picked up automatically — a value here simply wins over it.
-  // The build check prints the engine's real list and offers to import it.
-  "defines": {
-    "PLATFORM_WINDOWS": true,
-    "SERVER": true,
-    "DZ_Expansion_Core": true,
-    "DIAG": false
-  },
+  // Names the engine declares on the C++ side, with their values.
+  "environments": { "DBT_OK": 0, "DMT_INFO": 1 },
 
-  // ===== FINDING REFERENCES =================================================
-  // How wide the usage search goes and what the panel shows.
-
-  // Let references, CodeLens and Shift+F12 work on engine and dependency files too.
-  // Popular engine types can have thousands of usages.
+  // ===== REFERENCES ========================================================
+  // Allow references and CodeLens on engine and dependency files
+  // (popular engine types have thousands of usages).
   "externalReferences": true,
+  "references": { "includeTextMatches": false },
 
-  "references": {
-    // Show plain text matches in the panel by default (the panel has a toggle anyway).
-    "includeTextMatches": false
-  },
-
-  // ===== BUILDING AND ASKING THE ENGINE (F5) ================================
-  // Everything needed to pack the mod into a PBO and feed it to a headless
-  // server. If you do not need the engine check, preflight alone is enough.
-
+  // ===== BUILD AND ENGINE CHECK (F5) =======================================
   "build": {
-    // Check the project with our analyzer before launching the engine.
-    "preflight": true,
-
+    "preflight": true,              // our own check BEFORE the engine starts
     "modName": "@MyMod",            // output folder name
-    "outDir": "./builds",           // artifacts: <outDir>/<modName>/addons/*.pbo
+    "outDir": "./builds",           // <outDir>/<modName>/addons/*.pbo
 
-    // Packed dependency mods for -mod=, in load order.
-    "deps": [
-      "D:/Steam/steamapps/common/DayZ/!Workshop/@CF",
-      "D:/Steam/steamapps/common/DayZ/!Workshop/@DayZ-Expansion-Core"
-    ],
+    // There is no separate dependency list — the engine gets load[].
 
-    // Where DayZ Server lives. Omit both to auto-detect via Steam.
+    // Where the server lives. Drop both keys to auto-detect via Steam.
     // DayZServer_x64.exe is required; DayZDiag needs a running Steam client.
-    "serverExe": "E:/Games/SteamLibrary/steamapps/common/DayZServer/DayZServer_x64.exe",
-    "serverCwd": "E:/Games/SteamLibrary/steamapps/common/DayZServer",
+    "serverExe": "D:/Steam/steamapps/common/DayZServer/DayZServer_x64.exe",
+    "serverCwd": "D:/Steam/steamapps/common/DayZServer",
 
     "mission": "mpmissions/dayzOffline.chernarusplus",
     "timeoutSec": 240
@@ -454,19 +364,21 @@ Everything is optional. A fully filled example:
 }
 ```
 
-Both `/` and `\\` work in paths. The PBO prefix is not configured — it is taken from each
+Both `/` and `\\` work in paths. The PBO prefix is not configurable — it comes from each
 module's `config.cpp`, and a project with several modules is packed into one PBO per module.
+Only scripts go into the PBO: that is all the engine needs for a verdict, asset packing comes
+later.
 
 ## Thanks
 
-Two magnificent projects appear in the examples above:
+Two great projects are mentioned in the examples above:
 
 - [DayZ-Expansion-Scripts](https://github.com/salutesh/DayZ-Expansion-Scripts)
 - [DayZ-CommunityFramework](https://github.com/Arkensor/DayZ-CommunityFramework)
 
-They are not there by accident: their code is what we studied while working out the syntax
-and lexis of Enforce Script — a large living project shows how the language is really used,
-far better than any documentation could. Huge thanks to their authors and communities.
+They are not here by accident: their code is where we studied the syntax and idioms of Enforce
+Script — a large living project shows how the language is really used far better than any
+documentation. Thanks to their authors and the community.
 
 ## License
 
