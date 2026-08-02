@@ -71,13 +71,6 @@ The purpose is developing **your own** code against a dependency: you need its p
 nothing beyond that. Obfuscated mods are therefore opened as **signatures only** — class
 headers, method signatures, field types. Method bodies are never extracted.
 
-## Thanks
-
-[DayZ-Expansion-Scripts](https://github.com/salutesh/DayZ-Expansion-Scripts) and
-[DayZ-CommunityFramework](https://github.com/Arkensor/DayZ-CommunityFramework) — their code is
-where the syntax and idioms of Enforce Script were studied. Thanks to their authors and the
-community.
-
 ## License
 
 MIT — see [LICENSE](LICENSE). The license covers what is distributed: the extension package
