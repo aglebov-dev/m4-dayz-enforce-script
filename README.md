@@ -80,4 +80,14 @@ community.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE). The license covers what is distributed: the extension package
+published on the Marketplace and the documentation in this repository.
+
+**The source code is not published.** The `.vsix` ships a single bundled and minified file, not
+readable source, and this repository holds documentation only. MIT is a permissive license and
+does not require publishing sources — this note is here so the scope is explicit rather than
+inferred.
+
+Third-party components inside the package — the tree-sitter runtime, the Enforce Script grammar
+and the VS Code codicons — keep their own licenses; their notices ship with the extension in
+`THIRD-PARTY-NOTICES.txt`.
