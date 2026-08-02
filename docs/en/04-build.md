@@ -50,6 +50,42 @@ One source of truth: "green in the editor, red in the build" has nowhere to come
 A failed run leaves the server dying in the background; the next `F5` waits for it and retries
 the PBO write if the file is still locked.
 
+## What the extension runs on your machine
+
+The analyzer itself starts nothing: index, completion, navigation, diagnostics and pre-flight
+are pure computation inside the extension host. Processes appear only when you ask for a build
+or a debug session, and there are exactly three of them:
+
+| Process | When | Why |
+| --- | --- | --- |
+| `DayZServer_x64.exe` (or `DayZDiag_x64.exe`) | `F5` | Compiles the packed mod and returns the real engine verdict |
+| `DayZDiag_x64.exe` | **Run server** / **Run client** | The debug session, see [05 · Debugging](05-debugging.md) |
+| `powershell.exe` | alongside an engine build, Windows only | Closes the engine's modal dialogs — details below |
+
+### Why PowerShell is involved
+
+When the engine hits a missing addon it does not fail — it opens a modal `MessageBox` and waits
+for a click. In one real run that stalled the build for 19 seconds, and with nobody at the
+screen the build dies on the stall detector instead of reporting the actual problem. A verdict
+that depends on whether a human is watching is not a verdict.
+
+So during an engine build the extension starts one PowerShell helper. It uses `user32.dll`
+through P/Invoke, because that is the only way to see a window without shipping a native module
+or adding a dependency. What it does, and nothing else:
+
+1. enumerates top-level windows and keeps those that belong to **the PID the extension started
+   itself** — no other process is ever inspected;
+2. of those, keeps only windows of class `#32770` (the standard Windows dialog) that have both
+   text and a button — the engine also creates empty service windows of that class, and touching
+   them kills the run;
+3. copies the dialog text into the build Output, so the reason reaches you;
+4. posts `BM_CLICK` to the first button, i.e. presses **OK**;
+5. exits when the build ends.
+
+The script is written to a temporary `.ps1` file and executed with `-File`, so it can be read
+while it runs; it is not passed as an encoded command. No network access, no writes outside the
+temporary file and your build folder, nothing persists after the build.
+
 ## Pre-flight
 
 With pre-flight on, the built-in analyzer runs over the whole project **before** the engine
