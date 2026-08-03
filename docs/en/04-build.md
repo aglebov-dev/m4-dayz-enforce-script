@@ -86,6 +86,18 @@ The script is written to a temporary `.ps1` file and executed with `-File`, so i
 while it runs; it is not passed as an encoded command. No network access, no writes outside the
 temporary file and your build folder, nothing persists after the build.
 
+## Log levels
+
+`enforce.build.logLevel` — what part of the engine log reaches the build channel.
+
+| Value | What the channel keeps |
+| --- | --- |
+| `errors` | errors only |
+| `important` (default) | errors, warnings and milestones — `Module: …`, mission load, shutdown countdown |
+| `full` | everything, including the raw RPT tail printed when the server dies on its own |
+
+`enforce.run.logLevel` — the same for a debug run, see [05 · Debugging](05-debugging.md#logs).
+
 ## Pre-flight
 
 With pre-flight on, the built-in analyzer runs over the whole project **before** the engine

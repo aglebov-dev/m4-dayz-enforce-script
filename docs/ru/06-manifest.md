@@ -120,6 +120,15 @@ launch.json file* → **Enforce Build & Check**.
     // F5: собрать PBO и скомпилировать headless-сервером
     { "type": "enforce", "request": "launch", "name": "Enforce: Build & Check" },
 
+    // F5: занять порт сервера, собрать PBO и запустить сервер
+    {
+      "type": "enforce",
+      "request": "launch",
+      "name": "Enforce: Run Server (debug)",
+      "listen": "server",
+      "run": "server"
+    },
+
     // Подключиться к DayZDiag, запущенному руками
     {
       "type": "enforce",
@@ -134,12 +143,13 @@ launch.json file* → **Enforce Build & Check**.
 
 | Атрибут | Для чего | Умолчание | Описание |
 | --- | --- | --- | --- |
+| `listen` | launch | — | Занять порт отладчика до старта: `server` (1001), `client` (1000), `off` |
+| `run` | launch | — | Собрать PBO и запустить сторону: `server`, `client`, `none` |
 | `port` | attach | `1000` | Порт, на который приходит игра: 1000 — клиент, 1001 — сервер, 1002 — второй клиент |
 | `workDrive` | attach | `P:` | Рабочий диск с распакованными скриптами — от него разворачиваются пути движка в стеке |
 
-У запроса `launch` атрибутов нет: всё берётся из `build{}` манифеста. Для обычной отладки
-attach-конфигурация не нужна вовсе — секция **Run and debug** в дереве типов поднимает сессию
-сама, см. [Отладка](05-debugging.md).
+Конфигурация `launch` без `listen` и `run` только собирает и проверяет; остальное берётся из
+`build{}` манифеста. См. [Отладка](05-debugging.md).
 
 `Ctrl+Shift+B` запускает задачу `enforce: build PBO`, ей конфигурация не нужна.
 
@@ -163,6 +173,8 @@ attach-конфигурация не нужна вовсе — секция **Ru
 | `enforce.references.includeTextMatches` | `false` | Текстовые совпадения в панели ссылок |
 | `enforce.preflight` | `false` | Проверять проект перед запуском движка |
 | `enforce.build` | `{ "mission": …, "timeoutSec": 240 }` | Дефолты сборки, перекрываются `build{}` манифеста |
+| `enforce.build.logLevel` | `important` | Что из лога движка идёт в канал сборки: `errors` / `important` / `full` |
+| `enforce.run.logLevel` | `important` | То же для отладочного запуска |
 | `enforce.readonlyExternal` | `true` | Движок и зависимости открываются read-only |
 | `enforce.autoRefreshSeconds` | `300` | Интервал ревалидации индекса, сек (0 — выкл) |
 | `enforce.formatting` | `{}` | `useSpaces`, `tabSize`, `allmanBraces`, `spaceAfterKeyword`, `astylePath`, `astyleRcPath`, `astyleArgs` |

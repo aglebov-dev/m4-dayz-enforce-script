@@ -38,7 +38,7 @@ Open the type explorer → **Run and debug** (under `Properties`):
 
 A running process is stopped by the same button. The same actions live in the palette:
 **Enforce: Listen for DayZDiag**, **Enforce: Run Server**, **Enforce: Run Client**,
-**Enforce: Stop Server and Client**.
+**Enforce: Stop Game and Debugging**.
 
 Order that works: turn the listener on for the side you want, then start that side, then attach
 the other one if you need it. A diag client will not connect to a release server (`0x00020017`)
@@ -46,6 +46,28 @@ the other one if you need it. A diag client will not connect to a release server
 
 To attach to a game you started yourself, use the attach configuration in `launch.json` — see
 [Manifest and launch.json](06-manifest.md#launchjson).
+
+### Starting with F5
+
+A `launch` configuration does what the buttons do: takes the port, then starts the side.
+
+| Attribute | Values | What it does |
+| --- | --- | --- |
+| `listen` | `server` (port 1001), `client` (port 1000), `off` | Takes the port before the game starts |
+| `run` | `server`, `client`, `none` | Builds the PBO and starts that side |
+
+```jsonc
+{
+  "type": "enforce",
+  "request": "launch",
+  "name": "Enforce: Run Server (debug)",
+  "listen": "server",
+  "run": "server"
+}
+```
+
+The debug session appears on its own once the game connects. Without `listen` and `run` a
+`launch` configuration is the plain build-and-check one.
 
 ## Configuration
 
@@ -69,6 +91,12 @@ taken from next to the server executable, the mission from `build.mission`.
 | `mission` | A relative path is resolved against the **server** folder, not the diag folder. A wrong path starts the server without the mission `init.c`: `player connect will stay disabled`, no economy, no clients. |
 | `port` | Game port of the debug server; the client connects to the same one. Not the debugger port — that one is fixed by the engine. |
 | `playerName` | Name the debug client joins with (`-name=`). |
+| `profilesDir` | Server profile. Default: `profiles/` next to the server executable. |
+| `clientProfilesDir` | Client profile. Default: `Documents\DayZ`. |
+
+A profile holds the logs and is what `$profile:` points at from your scripts, so debug runs use
+the live profiles by default: mod configs are read from the same place as in a normal game.
+Only `serverDZ.cfg` is copied — to `builds/serverDZ.debug.cfg`, the original is never touched.
 
 ## What you get on a break
 
@@ -89,6 +117,23 @@ taken from next to the server executable, the mission from `build.mission`.
 
   A compound statement (several operators in one line) is not executed at all, and classes from
   the `5_Mission` module are not visible by name — call through a base type.
+
+## Logs
+
+**Run server** and **Run client** each write to their own output channel. The mod is rebuilt
+before every start; if the game is already running, the build is skipped — its PBO files are
+locked.
+
+`enforce.run.logLevel` — what reaches the main channel:
+
+| Value | What the channel keeps |
+| --- | --- |
+| `errors` | errors only |
+| `important` (default) | errors, warnings and milestones — `Module: Mission`, player connect, shutdown countdown |
+| `full` | the whole stream |
+
+The untouched stream always goes to **Enforce Server (raw)** / **Enforce Client (raw)**, and the
+channel prints a clickable path to the log files on disk.
 
 ## Limits
 
@@ -134,4 +179,4 @@ stopping in the wrong place, and the console lists them by name when the session
 | `Enforce: Listen for DayZDiag (debug side)` | Hold the port of a side; `off` releases it |
 | `Enforce: Run Server` | Start the diag as a server |
 | `Enforce: Run Client` | Start the diag as a client |
-| `Enforce: Stop Server and Client` | Stop both |
+| `Enforce: Stop Game and Debugging` | Stop both |

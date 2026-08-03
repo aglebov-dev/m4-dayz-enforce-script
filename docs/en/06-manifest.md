@@ -121,6 +121,15 @@ Two configurations, both of type `enforce`. VS Code offers them itself: *Run and
     // F5: pack the PBOs and compile them on a headless DayZServer
     { "type": "enforce", "request": "launch", "name": "Enforce: Build & Check" },
 
+    // F5: listen for the server side, then build and start the server
+    {
+      "type": "enforce",
+      "request": "launch",
+      "name": "Enforce: Run Server (debug)",
+      "listen": "server",
+      "run": "server"
+    },
+
     // Attach to a DayZDiag you started yourself
     {
       "type": "enforce",
@@ -135,12 +144,13 @@ Two configurations, both of type `enforce`. VS Code offers them itself: *Run and
 
 | Attribute | Applies to | Default | Description |
 | --- | --- | --- | --- |
+| `listen` | launch | — | Take the debugger port before starting: `server` (1001), `client` (1000), `off` |
+| `run` | launch | — | Build the PBO and start that side: `server`, `client`, `none` |
 | `port` | attach | `1000` | Port the game connects to: 1000 client, 1001 server, 1002 second client |
 | `workDrive` | attach | `P:` | Work drive with the unpacked scripts — engine paths in the call stack are expanded from it |
 
-The `launch` request takes no attributes: everything comes from `build{}` in the manifest. For
-the usual debugging flow you do not need the attach configuration at all — the **Run and debug**
-section of the type explorer starts the session on its own, see [Debugging](05-debugging.md).
+A `launch` configuration without `listen` and `run` only builds and checks; everything else
+comes from `build{}` in the manifest. See [Debugging](05-debugging.md).
 
 `Ctrl+Shift+B` runs the `enforce: build PBO` task and needs no configuration.
 
@@ -164,6 +174,8 @@ section of the type explorer starts the session on its own, see [Debugging](05-d
 | `enforce.references.includeTextMatches` | `false` | Text matches in the references panel |
 | `enforce.preflight` | `false` | Check the project before launching the engine |
 | `enforce.build` | `{ "mission": …, "timeoutSec": 240 }` | Build defaults, overridden by `build{}` in the manifest |
+| `enforce.build.logLevel` | `important` | What part of the engine log reaches the build channel: `errors` / `important` / `full` |
+| `enforce.run.logLevel` | `important` | The same for a debug run |
 | `enforce.readonlyExternal` | `true` | Engine and dependencies open read-only |
 | `enforce.autoRefreshSeconds` | `300` | Index revalidation interval, seconds (0 = off) |
 | `enforce.formatting` | `{}` | `useSpaces`, `tabSize`, `allmanBraces`, `spaceAfterKeyword`, `astylePath`, `astyleRcPath`, `astyleArgs` |
