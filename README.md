@@ -21,6 +21,7 @@ Marketplace: **`m4rf.enforce-script-tools`**.
 | [04 · Build](docs/en/04-build.md) | PBO packing, engine compile on `F5`, pre-flight |
 | [05 · Debugging](docs/en/05-debugging.md) | Breakpoints in DayZDiag, run server/client, limits |
 | [06 · Manifest and launch.json](docs/en/06-manifest.md) | Full `enforce.project.json` reference, launch configurations, VS Code settings |
+| [07 · Working with config.cpp](docs/en/07-config.md) | Config index, hover, references, completion, foreign configs |
 
 ## Requirements
 
