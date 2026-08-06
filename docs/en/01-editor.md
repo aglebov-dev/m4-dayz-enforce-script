@@ -68,8 +68,23 @@ a class with a private constructor, and about fifty more rules.
   "environments": { "DBT_OK": 0, "DBB_NONE": 0, "DMT_INFO": 1 }
   ```
 
+One thing worth knowing about indexing: `x[k]` is not limited to `array` and `map` — on a
+regular class the brackets expand into its own `Get`/`Set`. Without the required method the
+engine refuses to compile the file (`Undefined function 'X.Get'`), and that is what
+`index-without-getset` reports. For a write `x[k] = v` a `Get` alone is not enough: `Set`
+must exist.
+
 To check the whole project before a build instead of file by file, see
 [pre-flight](04-build.md#pre-flight).
+
+## Built-in macros
+
+The Enforce preprocessor has exactly two built-in macros — `__LINE__` and `__FILE__` — and
+both expand to a STRING: `int n = __LINE__;` does not compile, `string s = __LINE__;` does.
+The analyzer knows them, completion offers them.
+
+The Arma heritage (`__DATE__`, `__TIME__`, `__COUNTER__`, `__FUNCTION__`) does not exist
+here: the compiler answers "Can't find variable" for such a name.
 
 ## Preprocessor defines
 
