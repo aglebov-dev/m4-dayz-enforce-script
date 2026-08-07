@@ -50,6 +50,10 @@ One source of truth: "green in the editor, red in the build" has nowhere to come
 A failed run leaves the server dying in the background; the next `F5` waits for it and retries
 the PBO write if the file is still locked.
 
+All project files are checked, including the first and the last one, and a single-file project
+too. The verdict is taken after compilation ends, not from the first module line; a run that
+could not be completed is marked as unverified.
+
 ## What the extension runs on your machine
 
 The analyzer itself starts nothing: index, completion, navigation, diagnostics and pre-flight

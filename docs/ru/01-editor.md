@@ -13,6 +13,8 @@
 - После имени enum — его значения, с числами и в порядке объявления.
 - Члены за выключенным гардом скрыты (`enforce.conditionalMembers: dim` — показывать
   перечёркнутыми).
+- После слова `override` — готовые сигнатуры базовых методов со скелетом тела; берутся
+  от предков и из предыдущего слоя `modded`.
 
 ## Навигация и hover
 
@@ -71,6 +73,34 @@ if (is null: !ai)
 скобки раскрываются в его собственные `Get`/`Set`. Нет нужного метода — движок не соберёт
 файл (`Undefined function 'X.Get'`), и это ловит правило `index-without-getset`. Для записи
 `x[k] = v` одного `Get` мало, нужен `Set`.
+
+### Правила 0.6.2
+
+| Правило | Не компилируется | А так — можно |
+| --- | --- | --- |
+| `override-no-base` | `override void EEKilled()` при базовом `EEKilled(Class killer)` | без `override` другая сигнатура — обычная перегрузка |
+| `static-local-init` | `static int k = n;` (`n` — параметр или локал) | `static int k = 5;` и от `static`-константы |
+| `array-type-position` | `int[] a;` у локала или поля | в параметре, типе возврата и `typedef` |
+| `vector-literal-malformed` | `vector v = "1 2";`, `"abc"`, `"1,2,3"` | три числа и больше, дробные, экспонента |
+| `enum-junk-keyword` | `enum { AA, ref BB = 1 }` | `new` в значении: `CC = new -1` |
+| `else-without-if` | `else` без своего `if` | — |
+| `new-non-type` | `new x`, где `x` — переменная | `new T` даже без круглых скобок |
+| `generic-double-ref` | `map<string, ref ref array<int>>` | `ref ref array<int> m_A;` у поля |
+| `less-than-statement` | `n < 2;` отдельной строкой | `n <= 2;`, `n > 2;`, `bool b = n < 2;` |
+| `postfix-in-expression` | `a++ + 2`, `if (a++ > 0)` | `a++;`, `int b = a++;`, `(a++) + 2`, `for (…; i++)` |
+| `unary-plus` | `int x = +5;` | унарный минус: `int x = -5;` |
+| `new-in-comparison` | `a == new array<int>()` | `T x = new T();`, `Print(new T())`, `a == null` |
+
+Правило «два стейтмента в одной строке» покрывает присваивания, поля класса, члены `enum`
+и `return` перед закрывающей скобкой. Перенос строки движок прощает, продолжение на той же
+строке — нет:
+
+```c
+k = k | 1 k = k & 3;      // ❌ «Broken expression»
+enum E { AA = 1 BB = 2 }  // ❌ в одной строке
+enum E { AA = 1
+         BB = 2 }         // ✅ с переносом — можно
+```
 
 Проверка всего проекта разом, а не пофайлово, — см. [предполёт](04-build.md#предполёт).
 

@@ -13,6 +13,8 @@ scripts and every `modded` layer in load order.
 - After an enum name — its values, with numbers, in declaration order.
 - Members behind a guard that is off are hidden (`enforce.conditionalMembers: dim` shows them
   struck through instead).
+- After the word `override` — ready-made signatures of base methods with a body skeleton,
+  taken from parents and from the previous `modded` layer.
 
 ## Navigation and hover
 
@@ -73,6 +75,33 @@ regular class the brackets expand into its own `Get`/`Set`. Without the required
 engine refuses to compile the file (`Undefined function 'X.Get'`), and that is what
 `index-without-getset` reports. For a write `x[k] = v` a `Get` alone is not enough: `Set`
 must exist.
+
+### Rules added in 0.6.2
+
+| Rule | Does not compile | This is fine |
+| --- | --- | --- |
+| `override-no-base` | `override void EEKilled()` when the base takes `EEKilled(Class killer)` | a different signature *without* `override` — that is an overload |
+| `static-local-init` | `static int k = n;` (`n` is a parameter or local) | `static int k = 5;` and `static` constants |
+| `array-type-position` | `int[] a;` as a local or a field | in a parameter, a return type and a `typedef` |
+| `vector-literal-malformed` | `vector v = "1 2";`, `"abc"`, `"1,2,3"` | three numbers or more, decimals, exponent |
+| `enum-junk-keyword` | `enum { AA, ref BB = 1 }` | `new` in a value: `CC = new -1` |
+| `else-without-if` | an `else` with no `if` of its own | — |
+| `new-non-type` | `new x` where `x` is a variable | `new T` even without parentheses |
+| `generic-double-ref` | `map<string, ref ref array<int>>` | `ref ref array<int> m_A;` on a field |
+| `less-than-statement` | `n < 2;` as a statement | `n <= 2;`, `n > 2;`, `bool b = n < 2;` |
+| `postfix-in-expression` | `a++ + 2`, `if (a++ > 0)` | `a++;`, `int b = a++;`, `(a++) + 2`, `for (…; i++)` |
+| `unary-plus` | `int x = +5;` | unary minus: `int x = -5;` |
+| `new-in-comparison` | `a == new array<int>()` | `T x = new T();`, `Print(new T())`, `a == null` |
+
+The "two statements on one line" rule covers assignments, class fields, `enum` members and a
+`return` before the closing brace. A line break the engine forgives, a run-on it does not:
+
+```c
+k = k | 1 k = k & 3;      // ❌ «Broken expression»
+enum E { AA = 1 BB = 2 }  // ❌ on one line
+enum E { AA = 1
+         BB = 2 }         // ✅ with a line break it compiles
+```
 
 To check the whole project before a build instead of file by file, see
 [pre-flight](04-build.md#pre-flight).

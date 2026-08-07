@@ -35,11 +35,15 @@ project. The tree mirrors the disk and is lazy — a corpus of 8000 classes open
 
 ## Dependencies
 
-Managed from the tree, not by hand:
+Managed from the tree, not by hand. The `Dependencies` context menu has two entries — they open
+different dialogs because the Windows file picker cannot offer files and folders at once:
 
-- **+** on `Dependencies` adds a mod folder or a `.pbo` to `load[]`;
+- **Add Mod Folder…** — a folder with `config.cpp` inside (`@Mod`, or its `addons` folder);
+- **Add Single PBO…** — one packed addon, unpacked into the cache;
 - **−** on an entry removes it from the manifest — nothing on disk is touched, and comments in
   the manifest survive the edit.
+
+A config-only dependency (no `.c` files at all) is added the same way and is indexed in full.
 
 Next to the manifest the extension keeps `enforce.deps.json`: the hash of every pbo and its
 unpack folder, so "is this the same mod?" has an answer. Packed mods are unpacked into the
@@ -52,6 +56,8 @@ dependency's code, unpack the PBO yourself and add that folder as sources.
 Obfuscated mods open in *API-only* mode: declarations without bodies. The API may come out
 partial, or not at all — and such mods are excluded from the debugger's path map
 (see [Debugging](05-debugging.md#limits)).
+
+Mods packed as a token `#ifdef` soup are skipped: neither API nor bodies come out of them.
 
 ## File operations
 

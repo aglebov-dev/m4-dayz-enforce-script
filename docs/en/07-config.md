@@ -49,6 +49,7 @@ positives. The level follows the consequence, not the look of the entry.
 | `array-empty-item` | info | `{"a",,12}` — an empty element appears |
 | `array-trailing-comma` | info | `{1,2,}` — the engine ignores it |
 | `array-item-run-on` | warning | `{12 "path"}` — a comma is missing between values |
+| `property-without-value` | error | a property with no `=` — `author` on a line of its own |
 
 What matters about values (verified by probes on a live server):
 
@@ -57,7 +58,14 @@ What matters about values (verified by probes on a live server):
   global `GetGame().ConfigGetInt(path)` returns 0 for any string;
 - **`int` and `float` are indistinguishable** — the same `20` is stored either way in vanilla;
 - **`true`/`false` are not booleans**: write `0`/`1`;
-- there is no "version" type — `0.6.1` becomes a string.
+- there is no "version" type — `0.6.1` becomes a string;
+- **a property with no `=` stops the server with a modal dialog before scripts are compiled**
+  (`author` or `author;` on a line of its own); `author = ;` is accepted;
+- the expression evaluator knows `abs`, `sqrt`, `floor`, `ceil`, `round`, `sin`, `cos`,
+  `log` (base 10), `exp`, `deg`, `rad`, arithmetic and parentheses. Other functions
+  (`min`, `max`, `pow`, `mod`, `sign`, `factor`, `interpolate`) yield 0 with no message;
+- configs have their own preprocessor: `#define` and `#ifdef/#ifndef/#else` work, Arma's `##`
+  concatenation raises a «Wrong # directive» dialog.
 
 ## Quick fixes
 
